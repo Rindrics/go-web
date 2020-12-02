@@ -12,10 +12,9 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-        mux := http.NewServeMux()
 
-	mux.HandleFunc("/welcome", messageHandler)
+	http.HandleFunc("/welcome", messageHandler)
 
 	log.Println("Listening...")
-        http.ListenAndServe(":8080", mux)
+        http.ListenAndServe(":8080", nil)
 }
