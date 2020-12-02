@@ -14,8 +14,7 @@ func messageHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
         mux := http.NewServeMux()
 
-	mh := http.HandlerFunc(messageHandler)
-	mux.Handle("/welcome", mh)
+	mux.HandleFunc("/welcome", messageHandler)
 
 	log.Println("Listening...")
         http.ListenAndServe(":8080", mux)
