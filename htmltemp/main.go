@@ -34,6 +34,7 @@ func main() {
 	r.HandleFunc("/notes/save", saveNote)
 	r.HandleFunc("/notes/edit/{id}", editNote)
 	r.HandleFunc("/notes/update/{id}", updateNote)
+	r.HandleFunc("/notes/delete/{id}", deleteNote)
 }
 
 func getNotes(w http.ResponseWriter, r *http.Request) {
@@ -82,4 +83,15 @@ func updateNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not find the resource to update.", http.StatusBadRequest)
 	}
 	http.Rediect(w, r, "/", 302)
+}
+
+func deleteNote(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	k := vars["id"]
+	if _, ok := noteStore[k]; ok {
+		delete(noteStore, k)
+	} else {
+		http.Error(w, "Courld not find the resource to delete", http.StatusBadRequest)
+	}
+	http.Redirect(w, r, "/", 302)
 }
