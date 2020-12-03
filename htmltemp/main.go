@@ -16,6 +16,11 @@ type Note struct {
 	CreatedOn	time.Time
 }
 
+type EditNote struct {
+	Note
+	Id string
+}
+
 var noteStore = make(map[string]Note)
 
 var id int = 0
@@ -27,6 +32,7 @@ func main() {
 	r.HandleFunc("/", getNotes)
 	r.HandleFunc("/notes/add", addNote)
 	r.HandleFunc("/notes/save", saveNote)
+	r.HandleFunc("/notes/edit/{id}", editNote)
 }
 
 func getNotes(w http.ResponseWriter, r *http.Request) {
@@ -46,4 +52,16 @@ func saveNote(w http.ResponseWriter, r *http.Request) {
 	k := strconv.Itoa(id)
 	noteStore[k] = note
 	http.Redirect(w, r, "/", 302)
+}
+
+func editNote(w http.ResponseWriter, r *http.Request) {
+	var viewModel EditNote
+	vars := mux.Vars(r)
+	k := vars["id"]
+	if note, ok := noteStore[k]; ok {
+		viewModel = EditNote{note, k}
+	}else {
+		http.Error(w, "Could not find the resource to edit.", http.StatusBadRequest)
+	}
+	renderTemplate(w, "edit", "base", viewModel)
 }
