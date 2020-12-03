@@ -78,7 +78,7 @@ func updateNote(w http.ResponseWriter, r *http.Request) {
 		noteToUpd.Description = r.PostFormValue("description")
 		noteToUpd.CreatedOn = note.CreatedOn
 		delete(noteStore, k)
-		noteStork[k] = noteToUpd
+		noteStore[k] = noteToUpd
 	} else {
 		http.Error(w, "Could not find the resource to update.", http.StatusBadRequest)
 	}
