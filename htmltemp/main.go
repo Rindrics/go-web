@@ -19,3 +19,8 @@ type Note struct {
 var noteStore = make(map[string]Note)
 
 var id int = 0
+
+func main() {
+	r := mux.NewRouter().StrictSlash(false)
+	fs := http.FileServer(http.Dir("public"))
+}
