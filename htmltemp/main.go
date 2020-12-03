@@ -33,6 +33,7 @@ func main() {
 	r.HandleFunc("/notes/add", addNote)
 	r.HandleFunc("/notes/save", saveNote)
 	r.HandleFunc("/notes/edit/{id}", editNote)
+	r.HandleFunc("/notes/update/{id}", updateNote)
 }
 
 func getNotes(w http.ResponseWriter, r *http.Request) {
@@ -64,4 +65,21 @@ func editNote(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Could not find the resource to edit.", http.StatusBadRequest)
 	}
 	renderTemplate(w, "edit", "base", viewModel)
+}
+
+func updateNote(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	k := vars["id"]
+	var noteToUpd Note
+	if note, ok := noteStore[k]; ok {
+		r.ParseForm()
+		noteToUpd.Title = r.PostFormValue("title")
+		noteToUpd.Description = r.PostFormValue("description")
+		noteToUpd.CreatedOn = note.CreatedOn
+		delete(noteStore, k)
+		noteStork[k] = noteToUpd
+	} else {
+		http.Error(w, "Could not find the resource to update.", http.StatusBadRequest)
+	}
+	http.Rediect(w, r, "/", 302)
 }
