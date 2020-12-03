@@ -23,4 +23,10 @@ var id int = 0
 func main() {
 	r := mux.NewRouter().StrictSlash(false)
 	fs := http.FileServer(http.Dir("public"))
+	r.Handle("/public/", fs)
+	r.HandleFunc("/", getNotes)
+}
+
+func getNotes(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "index", "base", noteStore)
 }
