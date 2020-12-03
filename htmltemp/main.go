@@ -121,6 +121,6 @@ func renderTemplate(w http.ResponseWriter, name string, template string, viewMod
 	}
 	err := tmpl.ExecuteTemplate(w, template, viewModel)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalSelverError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
