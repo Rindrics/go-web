@@ -26,6 +26,7 @@ func main() {
 	r.Handle("/public/", fs)
 	r.HandleFunc("/", getNotes)
 	r.HandleFunc("/notes/add", addNote)
+	r.HandleFunc("/notes/save", saveNote)
 }
 
 func getNotes(w http.ResponseWriter, r *http.Request) {
@@ -34,4 +35,15 @@ func getNotes(w http.ResponseWriter, r *http.Request) {
 
 func addNote(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "add", "base", nil)
+}
+
+func saveNote(w http.ResponseWriter, r *http.Request) {
+	r.ParseForm()
+	title := r.PostFormValue("title")
+	desc := r.PostFormValue("description")
+	note := Note{title, desc, time.Now()}
+	id++
+	k := strconv.Itoa(id)
+	noteStore[k] = note
+	http.Redirect(w, r, "/", 302)
 }
