@@ -25,8 +25,13 @@ func main() {
 	fs := http.FileServer(http.Dir("public"))
 	r.Handle("/public/", fs)
 	r.HandleFunc("/", getNotes)
+	r.HandleFunc("/notes/add", addNote)
 }
 
 func getNotes(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(w, "index", "base", noteStore)
+}
+
+func addNote(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "add", "base", nil)
 }
