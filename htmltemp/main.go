@@ -82,7 +82,7 @@ func updateNote(w http.ResponseWriter, r *http.Request) {
 	} else {
 		http.Error(w, "Could not find the resource to update.", http.StatusBadRequest)
 	}
-	http.Rediect(w, r, "/", 302)
+	http.Redirect(w, r, "/", 302)
 }
 
 func deleteNote(w http.ResponseWriter, r *http.Request) {
