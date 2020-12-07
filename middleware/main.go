@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/codegangsta/negroni"
+	"github.com/gorilla/mux"
 )
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -13,9 +14,9 @@ func index(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", index)
+	router := mux.NewRouter()
+	router.HandleFunc("/", index)
 	n := negroni.Classic()
-	n.UseHandler(mux)
+	n.UseHandler(router)
 	n.Run(":8080")
 }
