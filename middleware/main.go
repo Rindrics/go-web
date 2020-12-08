@@ -7,53 +7,30 @@ import (
 	"net/http"
 
 	"github.com/codegangsta/negroni"
+	"github.com/gorilla/context"
 )
 
-func middlewareFirst(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	log.Println("MiddlewareFirst - Before Handler")
-	next(w, r)
-	log.Println("MiddlewareFirst - After Handler")
-}
-
-func middlewareSecond(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-	log.Println("MiddlewareSecond - Before Handler")
-	if r.URL.Path == "/message" {
-		if r.URL.Query().Get("password") == "pass123" {
-			log.Println("Authorized to the system")
-			next(w, r)
-		} else {
-			log.Println("Failed to authorize to the system")
-			return
-		}
-	} else {
+func Authorize(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+	token := r.Header.Get("X-AppToken")
+	if token == "bXlVc2VybmFtZTpteVBhc3N3b3Jk" {
+		log.Printf("Authorized to the system")
+		context.Set(r, "user", "Shiju Varghese")
 		next(w, r)
+	} else {
+		http.Error(w, "Not Authorized", 401)
 	}
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	log.Println("Executing index Handler")
-	fmt.Fprintf(w, "Welcome!")
-}
-
-func message(w http.ResponseWriter, r *http.Request) {
-	log.Println("Executing message Handler")
-	fmt.Fprintf(w, "HTTP Middleware is awesome")
-}
-
-func iconHandler(w http.ResponseWriter, r *http.Request) {
+	user := context.Get(r, "user")
+	fmt.Fprintf(w, "Welcome %s!", user)
 }
 
 func main() {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/favicon.ico", iconHandler)
 	mux.HandleFunc("/", index)
-	mux.HandleFunc("/message", message)
-	n := negroni.New(
-		negroni.NewRecovery(),
-		negroni.HandlerFunc(middlewareFirst),
-		negroni.HandlerFunc(middlewareSecond),
-		negroni.NewLogger(),
-		negroni.NewStatic(http.Dir("public")),
-	)
+	n := negroni.Classic()
+	n.Use(negroni.HandlerFunc(Authorize))
+	n.UseHandler(mux)
 	n.Run(":8080")
 }
