@@ -3,82 +3,145 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"os"
+	"time"
 
-	"github.com/gorilla/pat"
-	"github.com/markbates/goth"
-	"github.com/markbates/goth/gothic"
-	"github.com/markbates/goth/providers/facebook"
-	"github.com/markbates/goth/providers/twitter"
+	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
 )
 
-type Configuration struct {
-	TwitterKey	string
-	TwitterSecret	string
-	FacebookKey	string
-	FacebookSecret	string
-}
+const (
+	privKeyPath = "keys/app.rsa"
+	pubKeyPath = "keys/app.rsa.pub"
+)
 
-var config Configuration
+var (
+	verifyKey, signKey []byte
+)
+
+type User struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
+}
 
 func init() {
-	file, _ := os.Open("config.json")
-	decoder := json.NewDecoder(file)
-	config = Configuration{}
-	err := decoder.Decode(&config)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
+	var err error
 
-func callbackAuthHandler(res http.ResponseWriter, req *http.Request) {
-	user, err := gothic.CompleteUserAuth(res, req)
+	signKey, err = ioutil.ReadFile(privKeyPath)
 	if err != nil {
-		fmt.Fprintln(res, err)
+		log.Fatal("Error reading private key")
 		return
 	}
-	t, _ := template.New("userinfo").Parse(userTemplate)
-	t.Execute(res, user)
+
+	verifyKey, err = ioutil.ReadFile(pubKeyPath)
+	if err != nil {
+		log.Fatal("Error reading private key")
+		return
+	}
 }
 
-func indexHandler(res http.ResponseWriter, req *http.Request) {
-	t, _:= template.New("index").Parse(indexTemplate)
-	t.Execute(res, nil)
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	var user User
+
+	err := json.NewDecoder(r.Body).Decode(&user)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, "Error in request body")
+		return
+	}
+
+	if user.UserName != "shijuvar" && user.Password != "pass" {
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprintln(w, "Wrong info")
+		return
+	}
+
+	t := jwt.New(jwt.GetSigningMethod("RS256"))
+
+	t.Claims["iss"] = "admin"
+	t.Claims["CustomUserInfo"] = struct {
+		Name string
+		Role string
+	} {user.UserName, "Member"}
+
+	t.Claims["exp"] = time.Now().Add(time.Minute * 20).Unix()
+	tokenString, err := t.SignedString(signKey)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintln(w, "Sorry, error while Signing Token!")
+		log.Printf("Token Signing error: %v\n", err)
+		return
+	}
+	response := Token(tokenString)
+	jsonResponse(response, w)
+
+	
+}
+func authHandler(w http.ResponseWriter, r *http.Request) {
+	token, err := jwt.ParseFromRequest(r, func(token *jwt.Token) (interface{}, error) {
+		return verifyKey, nil
+	})
+	if err != nil {
+		switch err.(type) {
+		case *jwt.ValidationError:
+			vErr := err.(*jwt.ValidationError)
+
+			switch vErr.Errors {
+			case jwt.ValidationErrorExpired:
+				w.WriteHeader(http.StatusUnauthorized)
+				fmt.Fprintln(w, "Token Expired, get a new one.")
+				return
+
+			default:
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintln(w, "Error while Parsing Token!")
+				log.Printf("ValidationError error: %+v\n", vErr.Errors)
+				return
+			}
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprintln(w, "Error while Parsing Token!")
+			log.Printf("Token parse error: %v\n", err)
+			return
+		}
+	}
+	if token.Valid {
+		response := Response{"Authorized to the system"}
+		jsonResponse(response, w)
+	} else {
+		response := Response{"Invalid token"}
+		jsonResponse(response, w)
+	}
 }
 
+type Response struct {
+	Text string `json:"text"`
+}
+type Token struct {
+	Token string `json:"token"`
+}
+
+func jsonresponse(response interface{}, w http.ResponseWriter) {
+	json, err := json.Marshal(response)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
 func main() {
-	goth.UseProviders(
-		twitter.New(config.TwitterKey, config.TwitterSecret, "http://localhost:8080/auth/twitter/callback"),
-		facebook.New(config.FacebookKey, config.FacebookSecret, "http://localhost:8080/auth/facebook/callback"),
-	)
-	r := pat.New()
-	r.Get("/auth/{provider}/callback", callbackAuthHandler)
-	r.Get("/auth/{provider}", gothic.BeginAuthHandler)
-	r.Get("/", indexHandler)
+	r := mux.NewRouter()
+	r.HandleFunc("/login", loginHandler).Methods("POST")
+	r.HandleFunc("/auth", authHandler).Methods("POST")
 
-	server := &http.Server {
+	server := &http.Server{
 		Addr:		":8080",
 		Handler:	r,
 	}
 	log.Println("Listening...")
 	server.ListenAndServe()
 }
-
-var indexTemplate = `
-<p><a href="/auth/twitter">Log in with Twitter</a></p>
-<p><a href="/auth/facebook">Log in with Facebook</a></p>
-`
-
-var userTemplate = `
-<p>Name: {{.Name}}</p>
-<p>Email: {{.Email}}</p>
-<p>NickName: {{.NickName}}</p>
-<p>Location: {{.Location}}</p>
-<p>AvatarURL: {{.AvatarURL}}<img src="{{.AvatarURL}}"></p>
-<p>Description: {{.Description}}</p>
-<p>UserID: {{.UserID}}</p>
-<p>AccessToken: {{.AccessToken}}</p>
-`

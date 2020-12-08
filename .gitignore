@@ -16,3 +16,5 @@
 
 *.log
 config.json
+app.rsa
+app.rsa.pub
