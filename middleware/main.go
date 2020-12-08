@@ -48,9 +48,12 @@ func main() {
 	mux.HandleFunc("/favicon.ico", iconHandler)
 	mux.HandleFunc("/", index)
 	mux.HandleFunc("/message", message)
-	n := negroni.Classic()
-	n.Use(negroni.HandlerFunc(middlewareFirst))
-	n.Use(negroni.HandlerFunc(middlewareSecond))
-	n.UseHandler(mux)
+	n := negroni.New(
+		negroni.NewRecovery(),
+		negroni.HandlerFunc(middlewareFirst),
+		negroni.HandlerFunc(middlewareSecond),
+		negroni.NewLogger(),
+		negroni.NewStatic(http.Dir("public")),
+	)
 	n.Run(":8080")
 }
