@@ -31,28 +31,22 @@ func main() {
 
 	c := session.DB("taskdb").C("categories")
 
-	docM := map[string]string{
-		"name": "Open Source",
-		"description": "Tasks for open-source projects",
+	doc := Category{
+		bson.NewObjectId(),
+		"Open-Source",
+		"Tasks for open-source projects",
+		[]Task{
+			Task{"Create project in mgo", time.Date(2015, time.August, 10, 0, 0, 0, 0, time.UTC)},
+			Task{"Create REST API", time.Date(2015, time.August, 20, 0, 0, 0, 0, time.UTC)},
+		},
 	}
 
-	//insert a map object
-	err = c.Insert(docM)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	docD := bson.D{
-		{"name", "Project"},
-		{"description", "Project Tasks"},
-	}
-	//insert a document slice
 	var count int
 	count, err = c.Count()
-	err = c.Insert(docD)
+	err = c.Insert(doc)
 	if err != nil {
 		log.Fatal(err)
 	} else {
-		fmt.Printf("%d records inserted", count)
+		fmt.Printf("%d records inserted\n", count)
 	}
 }
