@@ -1,12 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"log"
+	"fmt"
+	"time"
 
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
+
+type Task struct {
+	Description	string
+	Due		time.Time
+}
+
+type Category struct {
+	Id		bson.ObjectId `bson:"_id,omitempty"`
+	Name		string
+	Description	string
+	Tasks		[]Task
+}
 
 func main() {
 	session, err := mgo.Dial("localhost")
